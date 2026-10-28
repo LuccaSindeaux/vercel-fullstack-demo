@@ -63,21 +63,114 @@ Da mesma forma, as variáveis `VERCEL_ENV` (`production`, `preview` ou `developm
 
 > Ou seja: **localmente não existe Edge Network**. Os valores de fallback permitem desenvolver a interface normalmente, e os dados reais aparecem assim que o projeto é publicado.
 
-## Como executar localmente
+## Como ativar o projeto (passo a passo)
 
-Pré-requisito: Node.js 20 ou superior.
+### 1. Pré-requisitos
+
+| Ferramenta | Versão | Como verificar |
+| --- | --- | --- |
+| [Node.js](https://nodejs.org) | **20.9 ou superior** (recomendado: LTS) | `node -v` |
+| npm | vem com o Node.js | `npm -v` |
+| [Git](https://git-scm.com) | qualquer versão recente | `git --version` |
+| Conta no [GitHub](https://github.com) | — | necessária para o deploy |
+| Conta na [Vercel](https://vercel.com/signup) | plano Hobby (gratuito) é suficiente | pode entrar usando a conta do GitHub |
+
+> Nenhuma variável de ambiente ou chave de API é necessária: o projeto funciona sem configuração extra.
+
+### 2. Rodar localmente
 
 ```bash
+# Clonar o repositório
+git clone https://github.com/LuccaSindeaux/vercel-fullstack-demo.git
+cd vercel-fullstack-demo
+
+# Instalar as dependências
 npm install
+
+# Iniciar o servidor de desenvolvimento
 npm run dev
 ```
 
-Acesse [http://localhost:3000](http://localhost:3000). Para gerar o build de produção:
+Acesse [http://localhost:3000](http://localhost:3000). O dashboard carrega a telemetria automaticamente e exibe os **valores de fallback** (ex.: `BR (Localhost Fallback)`), pois localmente não existe Edge Network.
+
+Para testar a API diretamente:
 
 ```bash
-npm run build
-npm start
+# GET
+curl http://localhost:3000/api/telemetry
+
+# POST
+curl -X POST http://localhost:3000/api/telemetry \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Olá turma de Fullstack!", "author": "Turma"}'
 ```
+
+Para simular o build de produção localmente:
+
+```bash
+npm run build   # compila e valida TypeScript
+npm start       # serve o build em http://localhost:3000
+npm run lint    # (opcional) verifica o código com ESLint
+```
+
+### 3. Enviar o código para o GitHub
+
+Se o repositório ainda não estiver no GitHub, crie um repositório vazio em [github.com/new](https://github.com/new) e rode:
+
+```bash
+git remote add origin https://github.com/<seu-usuario>/vercel-fullstack-demo.git   # só se ainda não houver "origin"
+git push -u origin main
+```
+
+### 4. Publicar na Vercel
+
+**Opção A — Pelo painel (recomendado):**
+
+1. Acesse [vercel.com/new](https://vercel.com/new) e conecte sua conta do GitHub.
+2. Clique em **Import** no repositório `vercel-fullstack-demo`.
+3. A Vercel detecta o **Next.js** automaticamente — não altere nada (Build Command, Output Directory e Install Command já vêm preenchidos).
+4. Clique em **Deploy** e aguarde cerca de 1 minuto.
+5. Abra a URL gerada (ex.: `https://vercel-fullstack-demo.vercel.app`).
+
+**Opção B — Pela linha de comando:**
+
+```bash
+npm i -g vercel
+vercel login
+vercel          # cria um Preview Deployment
+vercel --prod   # publica em Produção
+```
+
+### 5. Conferir se tudo está funcionando
+
+Na URL publicada, verifique:
+
+- [ ] O badge no topo mostra **Production**.
+- [ ] Os cards exibem seu **país e cidade reais** (`x-vercel-ip-country`, `x-vercel-ip-city`) em vez dos valores de fallback.
+- [ ] `x-vercel-id` e `VERCEL_REGION` mostram regiões reais (ex.: `gru1`, `iad1`).
+- [ ] O botão **"Disparar Nova Requisição GET"** atualiza os dados e mostra a latência em ms.
+- [ ] O formulário **"Enviar POST para Serverless"** retorna o JSON processado.
+- [ ] Em **Vercel → Projeto → Logs**, aparecem as invocações da função `/api/telemetry`.
+
+### 6. Testar Preview Deployments
+
+```bash
+git checkout -b teste-preview
+# faça qualquer alteração, por exemplo em src/app/page.tsx
+git commit -am "teste: preview deployment"
+git push -u origin teste-preview
+```
+
+Abra um Pull Request no GitHub: a Vercel comenta no PR com uma **URL de Preview** exclusiva, e o badge do dashboard mostra **Preview**. Ao fazer merge na `main`, a alteração vai para Produção automaticamente.
+
+### Problemas comuns
+
+| Problema | Solução |
+| --- | --- |
+| `npm install` falha ou o build reclama da versão do Node | Atualize para Node.js 20.9+ (`node -v`). |
+| Porta 3000 ocupada | `npm run dev -- -p 3001` |
+| Cards mostram "Localhost Fallback" em produção | Normal apenas localmente; na Vercel, confirme que está acessando a URL `*.vercel.app` (e não um proxy que remova os headers). |
+| Badge mostra **Development** na Vercel | Verifique se o deploy foi feito pela Vercel (a variável `VERCEL_ENV` é definida automaticamente por ela). |
 
 ## Fluxo de CI/CD: Git → Vercel
 
